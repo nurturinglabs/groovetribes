@@ -16,7 +16,7 @@ export default function Hero() {
 
       <div className="relative z-10 text-center px-4 text-white">
         <h1 className="text-4xl md:text-6xl font-bold drop-shadow-md">
-          Unleash the Beat. Own the Moment.
+          Unleash the Beat.Own the Moment.
         </h1>
         <div className="mt-6">
           <Link
