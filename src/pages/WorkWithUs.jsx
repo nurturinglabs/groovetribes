@@ -6,148 +6,171 @@ import { collection, addDoc } from "firebase/firestore";
 export default function WorkWithUs() {
   const [formData, setFormData] = useState({
     name: "",
-    email: "",
-    message: "",
+    preferredContact: "Email",
+    contactInfo: "",
     videoLink: "",
-    rate: ""
+    rate: "",
+    message: "",
   });
+
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
 
-  const validate = (field, value) => {
-    let error = "";
-    switch (field) {
-      case "name":
-        if (!value.trim()) error = "Name is required";
-        break;
-      case "email":
-        if (!value) error = "Email is required";
-        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) error = "Invalid email format";
-        break;
-      case "videoLink":
-        if (!value) error = "Reel link is required";
-        else if (!/^https?:\/\//.test(value)) error = "Enter a valid URL";
-        break;
-      case "rate":
-        if (!value) error = "Rate is required";
-        else if (parseFloat(value) < 0) error = "Rate must be non-negative";
-        break;
-      default:
-        break;
-    }
-    return error;
+  const validate = () => {
+    const newErrors = {};
+    if (!formData.name.trim()) newErrors.name = "Name is required";
+    if (!formData.contactInfo.trim())
+      newErrors.contactInfo = `Please enter a valid ${formData.preferredContact.toLowerCase()} contact`;
+    if (!formData.videoLink.trim()) newErrors.videoLink = "Reel/Video link is required";
+    if (!formData.rate.trim()) newErrors.rate = "Hourly rate is required";
+    return newErrors;
   };
 
   const handleChange = (e) => {
-    const { id, value } = e.target;
-    setFormData((prev) => ({ ...prev, [id]: value }));
-    setErrors((prev) => ({ ...prev, [id]: validate(id, value) }));
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const newErrors = {};
-    Object.entries(formData).forEach(([key, value]) => {
-      const error = validate(key, value);
-      if (error) newErrors[key] = error;
-    });
-    setErrors(newErrors);
-    if (Object.keys(newErrors).length === 0) {
-      try {
-        await addDoc(collection(db, "submissions"), formData);
-        setSubmitted(true);
-        setFormData({ name: "", email: "", message: "", videoLink: "", rate: "" });
-      } catch (error) {
-        console.error("Error saving to Firebase:", error);
-      }
+    const validationErrors = validate();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+
+    try {
+      await addDoc(collection(db, "submissions"), formData);
+      setSubmitted(true);
+      setFormData({
+        name: "",
+        preferredContact: "Email",
+        contactInfo: "",
+        videoLink: "",
+        rate: "",
+        message: "",
+      });
+    } catch (error) {
+      console.error("Error submitting form:", error);
+    }
+  };
+
+  const getContactLabel = () => {
+    switch (formData.preferredContact) {
+      case "Phone":
+        return "Phone Number";
+      case "WhatsApp":
+        return "WhatsApp Number";
+      case "Instagram":
+        return "Instagram Handle";
+      case "Other":
+        return "Other Contact Info";
+      default:
+        return "Email Address";
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 text-gray-800">
+    <div className="min-h-screen bg-white text-black">
       <Header />
-      <div className="max-w-3xl mx-auto pt-32 pb-12 px-4">
+      <div className="max-w-lg mx-auto pt-24 pb-12 px-4">
         <h1 className="text-3xl font-bold mb-6 text-center">Work With Us</h1>
         {submitted && (
-          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-6 text-center">
-            Thank you! We’ve received your submission and will get back to you soon.
+          <div className="bg-green-100 text-green-800 p-4 rounded mb-4 text-center text-sm">
+            Submission successful! We'll get in touch soon.
           </div>
         )}
-        <form onSubmit={handleSubmit} className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="name">Name</label>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block mb-1 text-sm">Full Name</label>
             <input
-              id="name"
               type="text"
+              name="name"
               value={formData.name}
               onChange={handleChange}
-              placeholder="Your Name"
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              className="w-full p-2 py-1.5 rounded bg-white border border-gray-300"
             />
-            {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+            {errors.name && (
+              <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+            )}
           </div>
 
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">Email</label>
-            <input
-              id="email"
-              type="email"
-              value={formData.email}
+          <div>
+            <label className="block mb-1 text-sm">Preferred Communication Method</label>
+            <select
+              name="preferredContact"
+              value={formData.preferredContact}
               onChange={handleChange}
-              placeholder="you@example.com"
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            />
-            {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+              className="w-full p-2 py-1.5 rounded bg-white border border-gray-300"
+            >
+              <option>Email</option>
+              <option>Phone</option>
+              <option>WhatsApp</option>
+              <option>Instagram</option>
+              <option>Other</option>
+            </select>
           </div>
 
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="message">Message</label>
+          <div>
+            <label className="block mb-1 text-sm">{getContactLabel()}</label>
+            <input
+              type="text"
+              name="contactInfo"
+              value={formData.contactInfo}
+              onChange={handleChange}
+              className="w-full p-2 py-1.5 rounded bg-white border border-gray-300"
+            />
+            {errors.contactInfo && (
+              <p className="text-red-500 text-sm mt-1">{errors.contactInfo}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block mb-1 text-sm">Reel / Short / TikTok Link</label>
+            <input
+              type="url"
+              name="videoLink"
+              value={formData.videoLink}
+              onChange={handleChange}
+              className="w-full p-2 py-1.5 rounded bg-white border border-gray-300"
+            />
+            {errors.videoLink && (
+              <p className="text-red-500 text-sm mt-1">{errors.videoLink}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block mb-1 text-sm">Your Hourly Rate (₹)</label>
+            <input
+              type="number"
+              name="rate"
+              value={formData.rate}
+              onChange={handleChange}
+              className="w-full p-2 py-1.5 rounded bg-white border border-gray-300"
+            />
+            {errors.rate && (
+              <p className="text-red-500 text-sm mt-1">{errors.rate}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block mb-1 text-sm">Message / Introduction</label>
             <textarea
-              id="message"
-              rows="4"
+              name="message"
               value={formData.message}
               onChange={handleChange}
-              placeholder="Tell us a bit about yourself..."
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              className="w-full p-2 py-1.5 rounded bg-white border border-gray-300"
+              rows="3"
             ></textarea>
           </div>
 
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="videoLink">Reel Link (Instagram / Shorts / TikTok)</label>
-            <input
-              id="videoLink"
-              type="url"
-              value={formData.videoLink}
-              onChange={handleChange}
-              placeholder="https://www.instagram.com/reel/..."
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            />
-            {errors.videoLink && <p className="text-red-500 text-sm mt-1">{errors.videoLink}</p>}
-          </div>
-
-          <div className="mb-6">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="rate">Preferred Hourly Rate (in USD)</label>
-            <input
-              id="rate"
-              type="number"
-              min="0"
-              step="1"
-              value={formData.rate}
-              onChange={handleChange}
-              placeholder="e.g. 25"
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            />
-            {errors.rate && <p className="text-red-500 text-sm mt-1">{errors.rate}</p>}
-          </div>
-
-          <div className="flex items-center justify-center">
-            <button
-              type="submit"
-              className="bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-            >
-              Submit
-            </button>
-          </div>
+          <button
+            type="submit"
+            className="w-full bg-pink-600 hover:bg-pink-700 text-white font-semibold py-2 rounded"
+          >
+            Submit
+          </button>
         </form>
       </div>
     </div>
